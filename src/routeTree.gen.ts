@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProgresoRouteImport } from './routes/progreso'
 import { Route as HabitosRouteImport } from './routes/habitos'
 import { Route as FasesRouteImport } from './routes/fases'
 import { Route as CheckinRouteImport } from './routes/checkin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ProgresoRoute = ProgresoRouteImport.update({
+  id: '/progreso',
+  path: '/progreso',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HabitosRoute = HabitosRouteImport.update({
   id: '/habitos',
   path: '/habitos',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/checkin': typeof CheckinRoute
   '/fases': typeof FasesRoute
   '/habitos': typeof HabitosRoute
+  '/progreso': typeof ProgresoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/checkin': typeof CheckinRoute
   '/fases': typeof FasesRoute
   '/habitos': typeof HabitosRoute
+  '/progreso': typeof ProgresoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/checkin': typeof CheckinRoute
   '/fases': typeof FasesRoute
   '/habitos': typeof HabitosRoute
+  '/progreso': typeof ProgresoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/checkin' | '/fases' | '/habitos'
+  fullPaths: '/' | '/checkin' | '/fases' | '/habitos' | '/progreso'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/checkin' | '/fases' | '/habitos'
-  id: '__root__' | '/' | '/checkin' | '/fases' | '/habitos'
+  to: '/' | '/checkin' | '/fases' | '/habitos' | '/progreso'
+  id: '__root__' | '/' | '/checkin' | '/fases' | '/habitos' | '/progreso'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   CheckinRoute: typeof CheckinRoute
   FasesRoute: typeof FasesRoute
   HabitosRoute: typeof HabitosRoute
+  ProgresoRoute: typeof ProgresoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/progreso': {
+      id: '/progreso'
+      path: '/progreso'
+      fullPath: '/progreso'
+      preLoaderRoute: typeof ProgresoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/habitos': {
       id: '/habitos'
       path: '/habitos'
@@ -107,7 +124,17 @@ const rootRouteChildren: RootRouteChildren = {
   CheckinRoute: CheckinRoute,
   FasesRoute: FasesRoute,
   HabitosRoute: HabitosRoute,
+  ProgresoRoute: ProgresoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
