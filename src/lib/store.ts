@@ -8,6 +8,7 @@ export interface DailyEntry {
   urge: number; // 0-10
   relapse: boolean;
   habitsCompleted: string[]; // habit ids
+  godTime?: number; // minutes with God
   notes?: string;
 }
 
@@ -29,10 +30,9 @@ export interface AppState {
 const STORAGE_KEY = "protocolo-libertad-v1";
 
 const DEFAULT_HABITS: Habit[] = [
-  { id: "ejercicio", name: "Ejercicio físico", icon: "💪", createdAt: new Date().toISOString() },
-  { id: "lectura", name: "Lectura 20 min", icon: "📖", createdAt: new Date().toISOString() },
-  { id: "meditacion", name: "Meditación / oración", icon: "🧘", createdAt: new Date().toISOString() },
-  { id: "agua", name: "Agua fría / ducha", icon: "🚿", createdAt: new Date().toISOString() },
+  { id: "orar", name: "Orar", icon: "🙏", createdAt: new Date().toISOString() },
+  { id: "ejercicio", name: "Ejercicio", icon: "💪", createdAt: new Date().toISOString() },
+  { id: "enfoque", name: "Enfoque (sin distracciones)", icon: "🎯", createdAt: new Date().toISOString() },
 ];
 
 function todayISO() {
@@ -157,13 +157,13 @@ export function daysSince(iso: string): number {
 }
 
 export const PHASES = [
-  { n: 1, name: "Despertar", days: 3, desc: "Reconocer el ciclo. Cortar el patrón." },
-  { n: 2, name: "Desintoxicación", days: 7, desc: "Resistir la tormenta inicial." },
-  { n: 3, name: "Reconstrucción", days: 14, desc: "Crear nuevos hábitos diarios." },
-  { n: 4, name: "Disciplina", days: 30, desc: "La mente recupera el control." },
-  { n: 5, name: "Claridad", days: 60, desc: "Energía y enfoque renovados." },
-  { n: 6, name: "Propósito", days: 90, desc: "Construir tu nueva identidad." },
-  { n: 7, name: "Libertad", days: 180, desc: "Dueño de ti mismo." },
+  { n: 1, name: "Revelación", days: 3, desc: "Ver la verdad. Reconocer el ciclo." },
+  { n: 2, name: "Identidad", days: 7, desc: "Recordar quién eres realmente." },
+  { n: 3, name: "Corte Radical", days: 14, desc: "Eliminar accesos, triggers y atajos." },
+  { n: 4, name: "Reemplazo", days: 30, desc: "Sustituir el viejo patrón con nuevos hábitos." },
+  { n: 5, name: "Disciplina", days: 60, desc: "La mente recupera el control." },
+  { n: 6, name: "Control Mental", days: 90, desc: "Dominas tus pensamientos, no te dominan." },
+  { n: 7, name: "Propósito", days: 180, desc: "Vives para algo más grande. Libertad." },
 ];
 
 export function computePhase(s: AppState): number {
