@@ -1,11 +1,12 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, CheckSquare, Flame, Map, Shield } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Flame, Map, Shield, TrendingUp } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Centro", icon: LayoutDashboard },
   { to: "/checkin", label: "Check-in", icon: CheckSquare },
   { to: "/habitos", label: "Hábitos", icon: Flame },
   { to: "/fases", label: "Fases", icon: Map },
+  { to: "/progreso", label: "Progreso", icon: TrendingUp },
 ];
 
 export function AppLayout() {
@@ -52,7 +53,7 @@ export function AppLayout() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden sticky bottom-0 z-30 border-t border-border/60 bg-background/90 backdrop-blur-sm">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {NAV.map((n) => {
             const active = loc.pathname === n.to;
             const Icon = n.icon;

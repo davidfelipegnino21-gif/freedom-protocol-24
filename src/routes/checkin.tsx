@@ -31,6 +31,7 @@ function CheckIn() {
   const [urge, setUrge] = useState(3);
   const [relapse, setRelapse] = useState(false);
   const [habits, setHabits] = useState<string[]>([]);
+  const [godTime, setGodTime] = useState(0);
   const [notes, setNotes] = useState("");
   const [saved, setSaved] = useState(false);
 
@@ -40,6 +41,7 @@ function CheckIn() {
       setUrge(existing.urge);
       setRelapse(existing.relapse);
       setHabits(existing.habitsCompleted);
+      setGodTime(existing.godTime ?? 0);
       setNotes(existing.notes ?? "");
     }
   }, [existing]);
@@ -49,7 +51,7 @@ function CheckIn() {
   };
 
   const submit = () => {
-    saveEntry({ date: today, mood, urge, relapse, habitsCompleted: habits, notes });
+    saveEntry({ date: today, mood, urge, relapse, habitsCompleted: habits, godTime, notes });
     setSaved(true);
     setTimeout(() => navigate({ to: "/" }), 900);
   };
@@ -153,6 +155,23 @@ function CheckIn() {
       </Card>
 
       {/* Notes */}
+      <Card title="Tiempo con Dios (minutos)">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-mono text-muted-foreground">0 min</span>
+          <span className="font-mono text-3xl font-bold text-primary">{godTime}</span>
+          <span className="text-xs font-mono text-muted-foreground">120 min</span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={120}
+          step={5}
+          value={godTime}
+          onChange={(e) => setGodTime(Number(e.target.value))}
+          className="w-full accent-primary"
+        />
+      </Card>
+
       <Card title="Notas (opcional)">
         <textarea
           value={notes}

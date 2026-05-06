@@ -41,26 +41,47 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-8 grid sm:grid-cols-2 gap-4">
+          <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-background/40 px-5 py-3">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Fase actual</div>
+              <div className="font-semibold">{phase.current.n}. {phase.current.name}</div>
+            </div>
+            <div className="font-mono text-2xl font-bold">{phase.current.n}<span className="text-muted-foreground text-base">/7</span></div>
+          </div>
+
+          <div className="mt-4 grid sm:grid-cols-3 gap-3">
             <Link
               to="/checkin"
+              className="group flex items-center justify-between rounded-lg bg-gradient-primary text-primary-foreground px-5 py-4 shadow-glow hover:opacity-95 transition-opacity"
+            >
+              <div>
+                <div className="text-[10px] uppercase tracking-wider font-mono opacity-80">
+                  {today ? "Actualizar hoy" : "Acción diaria"}
+                </div>
+                <div className="font-bold">Registrar día</div>
+              </div>
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              to="/habitos"
               className="group flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 px-5 py-4 transition-colors"
             >
               <div>
-                <div className="text-[10px] uppercase tracking-wider font-mono text-primary">
-                  {today ? "Ya registrado hoy" : "Pendiente hoy"}
-                </div>
-                <div className="font-semibold">Check-in diario</div>
+                <div className="text-[10px] uppercase tracking-wider font-mono text-primary">Arsenal</div>
+                <div className="font-semibold">Ver hábitos</div>
               </div>
               <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
             </Link>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-background/40 px-5 py-4">
+            <Link
+              to="/fases"
+              className="group flex items-center justify-between rounded-lg border border-border bg-background/40 hover:border-primary/40 px-5 py-4 transition-colors"
+            >
               <div>
-                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Fase actual</div>
-                <div className="font-semibold">{phase.current.n}. {phase.current.name}</div>
+                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Mapa</div>
+                <div className="font-semibold">Ir a fases</div>
               </div>
-              <div className="font-mono text-2xl font-bold">{phase.current.n}<span className="text-muted-foreground text-base">/7</span></div>
-            </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
         </div>
       </section>
