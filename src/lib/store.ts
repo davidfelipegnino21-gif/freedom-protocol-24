@@ -206,3 +206,28 @@ export function habitStreak(s: AppState, habitId: string): number {
 export function todayKey() {
   return todayISO();
 }
+
+export function bestStreak(s: AppState): number {
+  const dates = Object.keys(s.entries).sort();
+  if (dates.length === 0) return daysSince(s.lastRelapseDate);
+  let best = 0;
+  let run = 0;
+  // simplest: best = max gap between relapses including current streak
+  const relapses = dates.filter((d) => s.entries[d].relapse).sort();
+  const currentStreak = daysSince(s.lastRelapseDate);
+  if (relapses.length === 0) return currentStreak;
+  // compute gaps between consecutive relapses
+  let prev = new Date(s.startDate + "T00:00:00").getTime();
+  for (const r of relapses) {
+    const t = new Date(r + "T00:00:00").getTime();
+    const gap = Math.floor((t - prev) / 86400000);
+    if (gap > best) best = gap;
+    prev = t;
+  }
+  best = Math.max(best, currentStreak, run);
+  return best;
+}
+
+export function totalRelapses(s: AppState): number {
+  return Object.values(s.entries).filter((e) => e.relapse).length;
+}
