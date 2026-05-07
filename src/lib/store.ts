@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-export type Mood = "fuerte" | "estable" | "tentado" | "debil";
+export type Mood = "excelente" | "bien" | "normal" | "luchando" | "muymal";
+export type Category = "spiritual" | "mental" | "physical" | "discipline" | "finance" | "work" | "personal";
 
 export interface DailyEntry {
   date: string; // YYYY-MM-DD
@@ -10,13 +11,25 @@ export interface DailyEntry {
   habitsCompleted: string[]; // habit ids
   godTime?: number; // minutes with God
   notes?: string;
+  energy?: "baja" | "normal" | "alta";
+  sleptWell?: boolean;
+  godActivities?: string[];
 }
 
 export interface Habit {
   id: string;
   name: string;
   icon: string;
+  category?: Category;
   createdAt: string;
+}
+
+export interface OnboardingData {
+  name: string;
+  motivation: string;
+  duration: string;
+  currency: string;
+  monthlyIncome: number;
 }
 
 export interface AppState {
@@ -25,14 +38,18 @@ export interface AppState {
   currentPhase: number; // 1-7
   habits: Habit[];
   entries: Record<string, DailyEntry>; // by date
+  onboarded: boolean;
+  profile: OnboardingData;
+  xp: number;
 }
 
-const STORAGE_KEY = "protocolo-libertad-v1";
+const STORAGE_KEY = "protocolo-libertad-v2";
 
 const DEFAULT_HABITS: Habit[] = [
-  { id: "orar", name: "Orar", icon: "🙏", createdAt: new Date().toISOString() },
-  { id: "ejercicio", name: "Ejercicio", icon: "💪", createdAt: new Date().toISOString() },
-  { id: "enfoque", name: "Enfoque (sin distracciones)", icon: "🎯", createdAt: new Date().toISOString() },
+  { id: "orar", name: "Orar", icon: "🙏", category: "spiritual", createdAt: new Date().toISOString() },
+  { id: "biblia", name: "Leer Biblia", icon: "📖", category: "spiritual", createdAt: new Date().toISOString() },
+  { id: "ejercicio", name: "Ejercicio", icon: "💪", category: "physical", createdAt: new Date().toISOString() },
+  { id: "meditacion", name: "Meditación", icon: "🎯", category: "mental", createdAt: new Date().toISOString() },
 ];
 
 function todayISO() {
@@ -47,6 +64,9 @@ function defaultState(): AppState {
     currentPhase: 1,
     habits: DEFAULT_HABITS,
     entries: {},
+    onboarded: false,
+    profile: { name: "", motivation: "", duration: "", currency: "USD", monthlyIncome: 0 },
+    xp: 0,
   };
 }
 
@@ -118,22 +138,52 @@ export function saveEntry(entry: DailyEntry) {
       next.currentPhase = 1;
     }
     next.currentPhase = computePhase(next);
+    next.xp = s.xp + (entry.relapse ? 5 : 25);
     return next;
   });
 }
 
-export function addHabit(name: string, icon: string) {
+export function addHabit(name: string, icon: string, category: Category = "personal") {
   setState((s) => ({
     ...s,
     habits: [
       ...s.habits,
-      { id: crypto.randomUUID(), name, icon, createdAt: new Date().toISOString() },
+      { id: crypto.randomUUID(), name, icon, category, createdAt: new Date().toISOString() },
     ],
   }));
 }
 
 export function removeHabit(id: string) {
   setState((s) => ({ ...s, habits: s.habits.filter((h) => h.id !== id) }));
+}
+
+export function completeOnboarding(data: OnboardingData, selectedHabits: Habit[]) {
+  setState((s) => ({
+    ...s,
+    onboarded: true,
+    profile: data,
+    habits: selectedHabits.length ? selectedHabits : s.habits,
+    xp: s.xp + 50,
+  }));
+}
+
+export function toggleHabitToday(habitId: string) {
+  const today = todayISO();
+  setState((s) => {
+    const existing = s.entries[today];
+    const base: DailyEntry = existing ?? {
+      date: today, mood: "normal", urge: 0, relapse: false, habitsCompleted: [],
+    };
+    const wasCompleted = base.habitsCompleted.includes(habitId);
+    const completed = wasCompleted
+      ? base.habitsCompleted.filter((id) => id !== habitId)
+      : [...base.habitsCompleted, habitId];
+    return {
+      ...s,
+      entries: { ...s.entries, [today]: { ...base, habitsCompleted: completed } },
+      xp: s.xp + (wasCompleted ? 0 : 10),
+    };
+  });
 }
 
 export function resetCounter() {

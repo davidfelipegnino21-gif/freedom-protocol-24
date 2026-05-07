@@ -1,173 +1,355 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useAppState, useHydrated, daysSince, phaseProgress, habitStreak, todayKey, PHASES } from "@/lib/store";
-import { Flame, TrendingUp, Calendar, ArrowRight, CheckCircle2, Circle, Target } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  useAppState, useHydrated, daysSince, phaseProgress, todayKey, bestStreak, PHASES, type DailyEntry,
+} from "@/lib/store";
+import { cat } from "@/lib/categories";
+import { Flame, ArrowRight, ChevronRight, Shield, Zap } from "lucide-react";
+import { BarChart, Bar, ResponsiveContainer, Cell, Tooltip } from "recharts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Centro de Mando — Protocolo Libertad" },
-      { name: "description", content: "Tu progreso diario, racha y fase actual del Protocolo Libertad." },
+      { title: "Inicio — Protocolo Libertad" },
+      { name: "description", content: "Tu centro de mando diario: racha, hábitos, fase y misión activa." },
     ],
   }),
-  component: Dashboard,
+  component: Inicio,
 });
 
-function Dashboard() {
+const MOOD_DISPLAY: Record<string, { emoji: string; label: string }> = {
+  excelente: { emoji: "🔥", label: "Excelente" },
+  bien: { emoji: "💪", label: "Bien" },
+  normal: { emoji: "😐", label: "Normal" },
+  luchando: { emoji: "😢", label: "Luchando" },
+  muymal: { emoji: "💔", label: "Muy mal" },
+};
+
+const MESSAGES = [
+  "El que vence es quien se levanta una vez más de las que cae.",
+  "La libertad no se promete: se conquista cada día.",
+  "Lo que no se enfrenta, te gobierna.",
+  "Tu disciplina de hoy es la libertad de mañana.",
+  "No eres tus deseos. Eres lo que decides hacer con ellos.",
+  "Dios no te llamó a sobrevivir. Te llamó a vencer.",
+  "El silencio del enemigo es ruido para el alma. Sigue.",
+  "Cada ‘no’ a la tentación es un ‘sí’ a tu propósito.",
+  "Pequeñas victorias diarias construyen hombres invencibles.",
+  "Lo que repites te define, no lo que sientes.",
+];
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return "Buenos días,";
+  if (h >= 12 && h < 19) return "Buenas tardes,";
+  return "Buenas noches,";
+}
+
+function getLevel(xp: number) {
+  if (xp < 100) return { name: "Despertar", icon: "👁" };
+  if (xp < 300) return { name: "Iniciado", icon: "🛡" };
+  if (xp < 700) return { name: "Disciplinado", icon: "⚔️" };
+  if (xp < 1500) return { name: "Guerrero", icon: "🔥" };
+  return { name: "Libre", icon: "👑" };
+}
+
+function Inicio() {
   const s = useAppState();
   const hydrated = useHydrated();
   const days = hydrated ? daysSince(s.lastRelapseDate) : 0;
+  const best = hydrated ? bestStreak(s) : 0;
   const phase = phaseProgress(s);
   const today = s.entries[todayKey()];
-  const totalEntries = Object.keys(s.entries).length;
-  const cleanDays = Object.values(s.entries).filter((e) => !e.relapse).length;
+  const level = getLevel(s.xp);
+  const xpInLevel = s.xp % 100;
+  const message = MESSAGES[Math.floor(Date.now() / 86400000) % MESSAGES.length];
+
+  // 7-day dot history
+  const last7 = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    const e: DailyEntry | undefined = s.entries[key];
+    const dayName = ["D", "L", "M", "M", "J", "V", "S"][d.getDay()];
+    let status: "done" | "relapse" | "empty" = "empty";
+    if (e) status = e.relapse ? "relapse" : "done";
+    return { key, dayName, status, isToday: i === 6 };
+  });
+
+  // Weekly habit completion %
+  const weekData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    const e = s.entries[key];
+    const total = s.habits.length || 1;
+    const pct = e ? Math.round((e.habitsCompleted.length / total) * 100) : 0;
+    return { day: ["D", "L", "M", "M", "J", "V", "S"][d.getDay()], pct };
+  });
+
+  const habitsCompletedCount = today?.habitsCompleted.length ?? 0;
+  const habitsTotal = s.habits.length;
+  const habitsPct = habitsTotal ? Math.round((habitsCompletedCount / habitsTotal) * 100) : 0;
+
+  // Pending unified list
+  const pendingHabits = s.habits.filter((h) => !today?.habitsCompleted.includes(h.id));
 
   return (
-    <div className="space-y-8">
-      {/* Hero counter */}
-      <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-card grid-bg shadow-elegant">
-        <div className="absolute inset-0 pointer-events-none" style={{ background: "var(--gradient-ember)" }} />
-        <div className="relative p-6 sm:p-10">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-primary font-mono mb-4">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            Operación en curso
+    <div className="px-5 pt-8 pb-4 space-y-6">
+      {/* Header */}
+      <header className="flex items-start justify-between">
+        <div>
+          <p className="font-display text-base text-2 leading-tight">
+            {greeting()}<br/>
+            <span style={{ color: "var(--red)" }} className="font-bold">
+              {s.profile.name || "guerrero"}
+            </span>
+          </p>
+        </div>
+        <div className="text-right">
+          <div
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-display font-bold text-xs"
+            style={{ background: "var(--red)", color: "#fff" }}
+          >
+            <span>{level.icon}</span>{level.name}
           </div>
-          <div className="flex items-end gap-4 flex-wrap">
-            <div className="font-mono text-7xl sm:text-8xl font-bold leading-none tracking-tighter text-gradient-primary">
-              {hydrated ? String(days).padStart(2, "0") : "--"}
-            </div>
-            <div className="pb-2">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground font-mono">Días limpios</div>
-              <div className="text-sm text-muted-foreground mt-1">desde {hydrated ? formatDate(s.lastRelapseDate) : "—"}</div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-center justify-between rounded-lg border border-border bg-background/40 px-5 py-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Fase actual</div>
-              <div className="font-semibold">{phase.current.n}. {phase.current.name}</div>
-            </div>
-            <div className="font-mono text-2xl font-bold">{phase.current.n}<span className="text-muted-foreground text-base">/7</span></div>
-          </div>
-
-          <div className="mt-4 grid sm:grid-cols-3 gap-3">
-            <Link
-              to="/checkin"
-              className="group flex items-center justify-between rounded-lg bg-gradient-primary text-primary-foreground px-5 py-4 shadow-glow hover:opacity-95 transition-opacity"
-            >
-              <div>
-                <div className="text-[10px] uppercase tracking-wider font-mono opacity-80">
-                  {today ? "Actualizar hoy" : "Acción diaria"}
-                </div>
-                <div className="font-bold">Registrar día</div>
-              </div>
-              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              to="/habitos"
-              className="group flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 hover:bg-primary/20 px-5 py-4 transition-colors"
-            >
-              <div>
-                <div className="text-[10px] uppercase tracking-wider font-mono text-primary">Arsenal</div>
-                <div className="font-semibold">Ver hábitos</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              to="/fases"
-              className="group flex items-center justify-between rounded-lg border border-border bg-background/40 hover:border-primary/40 px-5 py-4 transition-colors"
-            >
-              <div>
-                <div className="text-[10px] uppercase tracking-wider font-mono text-muted-foreground">Mapa</div>
-                <div className="font-semibold">Ir a fases</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
-            </Link>
+          <div className="h-[3px] w-10 rounded-full mt-1.5 ml-auto" style={{ background: "var(--bg-elevated)" }}>
+            <div className="h-full rounded-full" style={{ width: `${xpInLevel}%`, background: "var(--red)" }} />
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Stats row */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Flame} label="Racha actual" value={hydrated ? days : 0} suffix="d" />
-        <StatCard icon={TrendingUp} label="Días registrados" value={hydrated ? totalEntries : 0} />
-        <StatCard icon={CheckCircle2} label="Días limpios" value={hydrated ? cleanDays : 0} accent />
-        <StatCard icon={Target} label="Hábitos activos" value={s.habits.length} />
-      </section>
-
-      {/* Phase progress */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-start justify-between mb-5">
+      {/* Streak Hero */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-2xl overflow-hidden p-5"
+        style={{
+          background: "var(--gradient-streak)",
+          border: "1px solid rgba(220,38,38,0.35)",
+          boxShadow: "0 0 30px rgba(220,38,38,0.08)",
+        }}
+      >
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-mono mb-1">Fase {phase.current.n} de 7</div>
-            <h2 className="text-xl font-bold">{phase.current.name}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{phase.current.desc}</p>
+            <div className="font-display font-extrabold leading-none tabular" style={{ fontSize: 80, color: "var(--red)" }}>
+              {hydrated ? String(days).padStart(2, "0") : "00"}
+            </div>
+            <div className="text-3 text-sm mt-1 font-display">días limpios</div>
           </div>
-          <Link to="/fases" className="text-xs font-mono uppercase tracking-wider text-primary hover:text-primary-glow flex items-center gap-1">
-            Ver mapa <ArrowRight className="h-3 w-3" />
-          </Link>
+          <div className="flex gap-1.5">
+            {last7.map((d, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span
+                  className={`h-3 w-3 rounded-full ${d.isToday ? "pl-pulse" : ""}`}
+                  style={{
+                    background:
+                      d.status === "done" ? "var(--green)" :
+                      d.status === "relapse" ? "var(--red)" :
+                      "transparent",
+                    border: d.status === "empty" ? "1.5px solid var(--text-5)" : "none",
+                  }}
+                />
+                <span className="text-[9px] font-display text-4">{d.dayName}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-2">
-          <div className="h-2 rounded-full bg-secondary overflow-hidden">
-            <div className="h-full bg-gradient-primary transition-all duration-700" style={{ width: `${phase.pct}%` }} />
+        {hydrated && best > 0 && (
+          <div className="mt-4 flex items-center gap-1.5 text-xs font-display font-semibold" style={{ color: "var(--gold)" }}>
+            <Flame className="h-3.5 w-3.5" /> Tu mejor racha: {best} días
           </div>
-          <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
-            <span>{phase.days} días</span>
-            <span>{phase.next ? `Siguiente: ${phase.next.name} (${phase.next.days}d)` : "Fase final alcanzada"}</span>
-          </div>
-        </div>
+        )}
+        {hydrated && days === 0 && (
+          <p className="mt-3 text-sm text-2 italic">Hoy comienza todo. Un día a la vez.</p>
+        )}
+      </motion.section>
+
+      {/* Quick stats */}
+      <section className="grid grid-cols-3 gap-2.5">
+        <QuickStat
+          title="Estado"
+          value={today ? MOOD_DISPLAY[today.mood]?.emoji : "—"}
+          sub={today ? MOOD_DISPLAY[today.mood]?.label : "Sin registrar"}
+        />
+        <QuickStat
+          title="Hábitos"
+          value={`${habitsCompletedCount}/${habitsTotal}`}
+          sub={`${habitsPct}%`}
+          accent
+        />
+        <QuickStat
+          title="Devocional"
+          value={today?.godTime ? "✅" : "—"}
+          sub={today?.godTime ? "Hecho" : "Pendiente"}
+        />
       </section>
 
-      {/* Habits today */}
-      <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold flex items-center gap-2"><Flame className="h-4 w-4 text-primary" /> Hábitos hoy</h2>
-          <Link to="/habitos" className="text-xs font-mono uppercase tracking-wider text-primary hover:text-primary-glow">Gestionar</Link>
+      {/* Tu día de hoy — unified list */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display font-bold text-lg text-1">Tu día de hoy</h2>
+          {pendingHabits.length > 0 && (
+            <span
+              className="px-2.5 py-1 rounded-full font-display font-bold text-[11px]"
+              style={{ background: "var(--red)", color: "#fff" }}
+            >{pendingHabits.length}</span>
+          )}
         </div>
-        <ul className="divide-y divide-border">
-          {s.habits.map((h) => {
-            const done = today?.habitsCompleted.includes(h.id);
-            const streak = hydrated ? habitStreak(s, h.id) : 0;
-            return (
-              <li key={h.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{h.icon}</span>
-                  <div>
-                    <div className="text-sm font-medium">{h.name}</div>
-                    <div className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                      <Flame className="h-3 w-3" /> {streak} días
-                    </div>
+
+        {pendingHabits.length === 0 ? (
+          <div
+            className="rounded-2xl p-5 text-center"
+            style={{
+              background: "rgba(22,163,74,0.06)",
+              border: "1px solid rgba(22,163,74,0.3)",
+              boxShadow: "0 0 20px rgba(22,163,74,0.10)",
+            }}
+          >
+            <div className="text-3xl mb-2">🎉</div>
+            <div className="font-display font-bold text-1">¡Día perfecto hasta ahora!</div>
+            <div className="text-3 text-xs mt-1">+50 XP bonus pendiente</div>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {pendingHabits.slice(0, 6).map((h) => {
+              const c = cat(h.category);
+              return (
+                <li key={h.id} className="card-pl flex items-center gap-3 p-3 pl-0 overflow-hidden">
+                  <span className="w-[3px] self-stretch" style={{ background: c.color }} />
+                  <span
+                    className="h-9 w-9 rounded-full flex items-center justify-center text-base shrink-0"
+                    style={{ background: c.glow }}
+                  >{h.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-display font-semibold text-1 text-sm truncate">{h.name}</div>
+                    <div className="text-3 text-[11px]">Hábito · {c.label}</div>
                   </div>
-                </div>
-                {done ? (
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground/40" />
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  <Link
+                    to="/hoy"
+                    className="px-3 py-1.5 rounded-lg font-display font-medium text-xs"
+                    style={{ background: "var(--bg-elevated)", color: "var(--text-2)" }}
+                  >Hacer</Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
+
+      {/* Misión activa */}
+      <section
+        className="rounded-2xl p-5"
+        style={{
+          border: "1px solid var(--border-gold)",
+          background: "rgba(212,175,55,0.04)",
+        }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <Zap className="h-3 w-3" style={{ color: "var(--gold)" }} />
+          <span className="font-display font-bold text-[10px] tracking-widest uppercase" style={{ color: "var(--gold)" }}>
+            Misión activa
+          </span>
+        </div>
+        <h3 className="font-display font-bold text-1 text-base">
+          Fase {phase.current.n}: {phase.current.name}
+        </h3>
+        <p className="italic text-2 text-sm mt-1">{phase.current.desc}</p>
+        <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: "var(--bg-elevated)" }}>
+          <div className="h-full rounded-full" style={{ width: `${phase.pct}%`, background: "var(--gold)" }} />
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-3 text-[11px] font-display tabular">
+            {phase.days}d / {phase.next ? `${phase.next.days}d` : `${phase.current.days}d`}
+          </span>
+          <Link
+            to="/metas"
+            className="font-display font-semibold text-xs flex items-center gap-1"
+            style={{ color: "var(--gold)" }}
+          >Ver misión <ChevronRight className="h-3 w-3" /></Link>
+        </div>
+      </section>
+
+      {/* Weekly chart */}
+      <section className="card-pl p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-display font-bold text-sm text-1">Esta semana</h3>
+          <span className="text-4 text-[11px] font-display tabular">
+            {new Date(Date.now() - 6 * 86400000).toLocaleDateString("es", { day: "numeric", month: "short" })} — {new Date().toLocaleDateString("es", { day: "numeric", month: "short" })}
+          </span>
+        </div>
+        <div style={{ height: 120 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weekData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <Tooltip
+                cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border-soft)", borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: "var(--text-3)" }}
+                formatter={(v: any) => [`${v}%`, "Hábitos"]}
+              />
+              <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
+                {weekData.map((d, i) => (
+                  <Cell key={i} fill={d.pct >= 80 ? "#16A34A" : d.pct >= 50 ? "#D4AF37" : d.pct > 0 ? "#DC2626" : "rgba(255,255,255,0.07)"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="grid grid-cols-7 mt-1">
+          {weekData.map((d, i) => (
+            <span key={i} className="text-center text-[10px] font-display text-4">{d.day}</span>
+          ))}
+        </div>
+      </section>
+
+      {/* Motivational */}
+      <section
+        className="rounded-2xl p-5 relative"
+        style={{ background: "var(--bg-card)", borderLeft: "3px solid var(--red)" }}
+      >
+        <span className="absolute top-2 left-3 text-3xl leading-none" style={{ color: "var(--red)", opacity: 0.2 }}>“</span>
+        <p className="italic text-2 text-sm pl-6">{message}</p>
+      </section>
+
+      {/* Comunidad */}
+      <a
+        href="https://www.skool.com"
+        target="_blank"
+        rel="noreferrer"
+        className="block rounded-2xl p-4 flex items-center justify-between"
+        style={{
+          background: "linear-gradient(90deg, rgba(124,58,237,0.10), rgba(220,38,38,0.10))",
+          border: "1px solid rgba(124,58,237,0.25)",
+        }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl">👥</span>
+          <div>
+            <div className="font-display font-semibold text-1 text-sm">Únete a los guerreros</div>
+            <div className="text-3 text-[11px]">Comunidad en Skool</div>
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 text-2" />
+      </a>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, suffix, accent }: { icon: any; label: string; value: number; suffix?: string; accent?: boolean }) {
+function QuickStat({ title, value, sub, accent }: { title: string; value: string; sub: string; accent?: boolean }) {
   return (
-    <div className={`rounded-lg border p-4 ${accent ? "border-primary/30 bg-primary/5" : "border-border bg-card"}`}>
-      <div className="flex items-center justify-between mb-2">
-        <Icon className={`h-4 w-4 ${accent ? "text-primary" : "text-muted-foreground"}`} />
+    <div
+      className="rounded-2xl p-3 text-center"
+      style={{
+        background: "var(--bg-card)",
+        border: `1px solid ${accent ? "var(--border-active)" : "var(--border-soft)"}`,
+        boxShadow: accent ? "0 0 16px var(--red-glow)" : "none",
+      }}
+    >
+      <div className="text-[10px] font-display uppercase tracking-wider text-4">{title}</div>
+      <div className={`font-display font-extrabold mt-1 ${accent ? "" : ""}`} style={{ fontSize: 22, color: accent ? "var(--red)" : "var(--text-1)" }}>
+        {value}
       </div>
-      <div className="font-mono text-2xl font-bold tracking-tight">{value}{suffix}</div>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mt-1">{label}</div>
+      <div className="text-3 text-[11px] mt-0.5 truncate">{sub}</div>
     </div>
   );
-}
-
-function formatDate(iso: string) {
-  try {
-    return new Date(iso + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-  } catch {
-    return iso;
-  }
 }
