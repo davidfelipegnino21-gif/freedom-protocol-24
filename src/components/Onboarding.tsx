@@ -81,14 +81,14 @@ export function Onboarding() {
               title="¿Por qué quieres ser libre?"
               options={MOTIVATIONS}
               value={data.motivation}
-              onChange={(v) => setData({ ...data, motivation: v })}
+              onChange={(v: string) => setData({ ...data, motivation: v })}
               onNext={next}
             />}
             {step === 2 && <StepChoice
               title="¿Cuánto tiempo llevas en esto?"
               options={DURATIONS}
               value={data.duration}
-              onChange={(v) => setData({ ...data, duration: v })}
+              onChange={(v: string) => setData({ ...data, duration: v })}
               onNext={next}
             />}
             {step === 3 && <StepHabits selected={selected} setSelected={setSelected} onNext={next} />}
