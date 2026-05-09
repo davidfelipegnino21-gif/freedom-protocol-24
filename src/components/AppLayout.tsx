@@ -16,7 +16,7 @@ export function AppLayout() {
   const s = useAppState();
   const hydrated = useHydrated();
 
-  if (hydrated && !s.onboarded) {
+  if (hydrated && !s.onboarded && !s.lastRelapseDate) {
     return <Onboarding />;
   }
 
