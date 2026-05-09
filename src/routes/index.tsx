@@ -310,7 +310,46 @@ function Inicio() {
         <span className="absolute top-2 left-3 text-3xl leading-none" style={{ color: "var(--red)", opacity: 0.2 }}>“</span>
         <p className="italic text-2 text-sm pl-6">{message}</p>
       </section>
-
+{/* Finanzas */}
+      {hydrated && s.profile.monthlyIncome > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-bold text-lg text-1">💰 Finanzas</h2>
+            <span className="text-[10px] font-display uppercase tracking-widest" style={{ color: "var(--gold)" }}>10-20-70</span>
+          </div>
+          <div
+            className="rounded-2xl p-4 mb-3"
+            style={{ background: "var(--gradient-streak)", border: "1px solid var(--border-gold)" }}
+          >
+            <div className="text-[10px] font-display uppercase tracking-widest" style={{ color: "var(--gold)" }}>Ingreso mensual</div>
+            <div className="font-display font-extrabold text-2xl tabular text-1 mt-1">
+              {s.profile.currency} {s.profile.monthlyIncome.toLocaleString()}
+            </div>
+          </div>
+          <div className="space-y-2">
+            {[
+              { pct: 10, label: "Diezmo", emoji: "🙏", color: "var(--gold)", desc: "Para Dios primero" },
+              { pct: 20, label: "Ahorro", emoji: "💰", color: "var(--green)", desc: "Para tu futuro" },
+              { pct: 70, label: "Gastos", emoji: "🏠", color: "var(--text-2)", desc: "Para vivir" },
+            ].map((b) => (
+              <div key={b.label} className="rounded-2xl p-3 flex items-center gap-3"
+                style={{ background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
+                <span className="text-2xl">{b.emoji}</span>
+                <div className="flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-display font-extrabold text-lg tabular" style={{ color: b.color }}>{b.pct}%</span>
+                    <span className="font-display font-semibold text-1 text-xs">{b.label}</span>
+                  </div>
+                  <div className="text-3 text-[10px]">{b.desc}</div>
+                </div>
+                <div className="font-display font-bold tabular text-1 text-sm">
+                  {s.profile.currency} {(s.profile.monthlyIncome * b.pct / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       {/* Comunidad */}
       <a
         href="https://www.skool.com"
