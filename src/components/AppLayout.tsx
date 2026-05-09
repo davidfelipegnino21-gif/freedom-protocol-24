@@ -16,12 +16,19 @@ export function AppLayout() {
   const s = useAppState();
   const hydrated = useHydrated();
 
-  if (hydrated && !s.onboarded && !s.lastRelapseDate) {
-    return <Onboarding />;
-  }
-
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg-base)" }}>
+
+      {/* Quiz como popup para usuarios nuevos */}
+      {hydrated && !s.onboarded && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          style={{ background: "var(--bg-base)" }}
+        >
+          <Onboarding />
+        </div>
+      )}
+
       <main className="flex-1 w-full mx-auto pb-24 max-w-md">
         <Outlet />
       </main>
