@@ -311,7 +311,7 @@ function Inicio() {
         <p className="italic text-2 text-sm pl-6">{message}</p>
       </section>
 {/* Finanzas */}
-      {hydrated && s.profile.monthlyIncome > 0 && (
+      {hydrated && (
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display font-bold text-lg text-1">💰 Finanzas</h2>
